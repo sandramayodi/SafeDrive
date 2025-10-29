@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard - SafeDrive AI</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: #f0f2f5;
+      color: #333;
+    }
+
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, #0a1628 0%, #1a2f4f 100%);
+      color: white;
+      padding: 1.5rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .logo {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #00ff88;
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .user-info span {
+      font-size: 0.95rem;
+    }
+
+    .logout-btn {
+      background: transparent;
+      border: 2px solid #00ff88;
+      color: #00ff88;
+      padding: 0.5rem 1.5rem;
+      border-radius: 25px;
+      text-decoration: none;
+      transition: all 0.3s;
+      font-weight: 500;
+    }
+
+    .logout-btn:hover {
+      background: #00ff88;
+      color: #0a1628;
+    }
+
+    /* Main Container */
+    .dashboard-container {
+      max-width: 1400px;
+      margin: 2rem auto;
+      padding: 0 2rem;
+    }
+
+    /* Status Bar */
+    .status-bar {
+      background: white;
+      border-radius: 15px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 2rem;
+    }
+
+    .status-item {
+      text-align: center;
+      padding: 1rem;
+    }
+
+    .status-item i {
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .status-item.safe i { color: #00ff88; }
+    .status-item.warning i { color: #ffc107; }
+    .status-item.danger i { color: #f44336; }
+    .status-item.idle i { color: #2196F3; }
+    .status-item.running i { color: #4CAF50; }
+
+    .status-value {
+      font-size: 2rem;
+      font-weight: bold;
+      margin: 0.5rem 0;
+    }
+
+    .status-label {
+      color: #666;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .status-time {
+      color: #999;
+      font-size: 0.8rem;
+      margin-top: 0.5rem;
+    }
+
+    /* Grid Layout */
+    .grid-layout {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    /* Card Styles */
+    .card {
+      background: white;
+      border-radius: 15px;
+      padding: 2rem;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 2px solid #f0f2f5;
+    }
+
+    .card-title {
+      font-size: 1.3rem;
+      font-weight: 600;
+      color: #0a1628;
+    }
+
+    .card-icon {
+      color: #00ff88;
+      font-size: 1.5rem;
+    }
+
+    /* Real-time Monitor */
+    .monitor-display {
+      text-align: center;
+      padding: 2rem;
+    }
+
+    .bac-reading {
+      font-size: 4rem;
+      font-weight: bold;
+      margin: 1rem 0;
+      background: linear-gradient(135deg, #00ff88, #00cc6f);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .bac-reading.danger {
+      background: linear-gradient(135deg, #f44336, #d32f2f);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .bac-reading.warning {
+      background: linear-gradient(135deg, #ffc107, #ff9800);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 0.5rem 1.5rem;
+      border-radius: 25px;
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.9rem;
+      margin-top: 1rem;
+    }
+
+    .status-badge.safe {
+      background: #e8f5e9;
+      color: #2e7d32;
+    }
+
+    .status-badge.warning {
+      background: #fff3e0;
+      color: #f57c00;
+    }
+
+    .status-badge.danger {
+      background: #ffebee;
+      color: #c62828;
+    }
+
+    /* Chart Container */
+    .chart-container {
+      height: 300px;
+      margin-top: 1rem;
+    }
+
+    /* Alerts */
+    .alerts-list {
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .alert-item {
+      background: #fff3e0;
+      border-left: 4px solid #ff9800;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      border-radius: 5px;
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+    }
+
+    .alert-item.danger {
+      background: #ffebee;
+      border-left-color: #f44336;
+    }
+
+    .alert-content {
+      flex: 1;
+    }
+
+    .alert-time {
+      color: #666;
+      font-size: 0.85rem;
+      margin-top: 0.5rem;
+    }
+
+    .resolve-btn {
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 0.4rem 1rem;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: background 0.3s;
+    }
+
+    .resolve-btn:hover {
+      background: #388E3C;
+    }
+
+    /* Vehicle Status */
+    .vehicle-info {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .vehicle-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem;
+      background: #f8f9fa;
+      border-radius: 10px;
+    }
+
+    .vehicle-label {
+      color: #666;
+      font-weight: 500;
+    }
+
+    .vehicle-value {
+      font-weight: 600;
+      font-size: 1.1rem;
+    }
+
+    .vehicle-value.running { color: #4CAF50; }
+    .vehicle-value.idle { color: #2196F3; }
+    .vehicle-value.locked { color: #f44336; }
+
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .stat-box {
+      background: #f8f9fa;
+      padding: 1.5rem;
+      border-radius: 10px;
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 2rem;
+      font-weight: bold;
+      color: #0a1628;
+      margin-bottom: 0.5rem;
+    }
+
+    .stat-label {
+      color: #666;
+      font-size: 0.9rem;
+    }
+
+    /* GPS Map */
+    .map-container {
+      height: 300px;
+      background: #e0e0e0;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .map-placeholder {
+      text-align: center;
+      color: #666;
+    }
+
+    /* Live Indicator */
+    .live-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: #f44336;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    .live-dot {
+      width: 10px;
+      height: 10px;
+      background: #f44336;
+      border-radius: 50%;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    /* No Data Message */
+    .no-data {
+      text-align: center;
+      padding: 2rem;
+      color: #999;
+    }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+      .grid-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .status-bar {
+        grid-template-columns: 1fr;
+      }
+
+      .header {
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <div class="logo"><i class="fas fa-car"></i> SafeDrive AI</div>
+    </div>
+    <div class="user-info">
+      <span><i class="fas fa-user"></i> <%= user.fullName %></span>
+      <a href="/logout" class="logout-btn">Logout</a>
+    </div>
+  </div>
+
+  <!-- Main Dashboard -->
+  <div class="dashboard-container">
+    
+    <!-- Status Bar -->
+    <div class="status-bar">
+      <div class="status-item <%= latestReading ? latestReading.status.toLowerCase() : 'safe' %>">
+        <i class="fas fa-wine-bottle"></i>
+        <div class="status-value">
+          <%= latestReading ? latestReading.alcohol_level.toFixed(3) : '0.000' %>%
+        </div>
+        <div class="status-label">Blood Alcohol Content</div>
+        <% if (latestReading) { %>
+          <div class="status-time">
+            Updated: <%= new Date(latestReading.timestamp).toLocaleTimeString() %>
+          </div>
+        <% } %>
+      </div>
+
+      <div class="status-item <%= vehicleStatus ? vehicleStatus.vehicle_state.toLowerCase() : 'idle' %>">
+        <i class="fas fa-<%= vehicleStatus && vehicleStatus.vehicle_state === 'RUNNING' ? 'car' : 'pause-circle' %>"></i>
+        <div class="status-value">
+          <%= vehicleStatus ? vehicleStatus.vehicle_state : 'IDLE' %>
+        </div>
+        <div class="status-label">Vehicle Status</div>
+        <% if (vehicleStatus) { %>
+          <div class="status-time">
+            Engine: <%= vehicleStatus.engine_status %>
+          </div>
+        <% } %>
+      </div>
+
+      <div class="status-item <%= alerts.length > 0 ? 'danger' : 'safe' %>">
+        <i class="fas fa-exclamation-triangle"></i>
+        <div class="status-value"><%= alerts.length %></div>
+        <div class="status-label">Active Alerts</div>
+      </div>
+
+      <div class="status-item">
+        <i class="fas fa-chart-line"></i>
+        <div class="status-value"><%= stats.total_readings || 0 %></div>
+        <div class="status-label">Readings Today</div>
+      </div>
+    </div>
+
+    <!-- Main Grid Layout -->
+    <div class="grid-layout">
+      <!-- Left Column -->
+      <div>
+        <!-- Real-time Monitor -->
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">Real-Time Monitoring</h2>
+            <div class="live-indicator">
+              <span class="live-dot"></span>
+              LIVE
+            </div>
+          </div>
+          
+          <div class="monitor-display">
+            <div class="bac-reading <%= latestReading ? latestReading.status.toLowerCase() : 'safe' %>" id="bacReading">
+              <%= latestReading ? latestReading.alcohol_level.toFixed(3) : '0.000' %>%
+            </div>
+            <div class="status-badge <%= latestReading ? latestReading.status.toLowerCase() : 'safe' %>" id="statusBadge">
+              <%= latestReading ? latestReading.status : 'SAFE' %>
+            </div>
+            <p style="margin-top: 1rem; color: #666;">Legal Limit: 0.080% BAC</p>
+          </div>
+
+          <div class="stats-grid">
+            <div class="stat-box">
+              <div class="stat-value"><%= stats.avg_level ? stats.avg_level.toFixed(3) : '0.000' %>%</div>
+              <div class="stat-label">Average Today</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-value"><%= stats.max_level ? stats.max_level.toFixed(3) : '0.000' %>%</div>
+              <div class="stat-label">Peak Today</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-value"><%= stats.danger_count || 0 %></div>
+              <div class="stat-label">Danger Events</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-value" style="color: <%= latestReading && latestReading.status === 'SAFE' ? '#4CAF50' : '#f44336' %>">
+                <%= latestReading && latestReading.status === 'SAFE' ? 'SAFE' : 'UNSAFE' %>
+              </div>
+              <div class="stat-label">Current State</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- History Chart -->
+        <div class="card" style="margin-top: 2rem;">
+          <div class="card-header">
+            <h2 class="card-title">24-Hour History</h2>
+            <i class="fas fa-chart-area card-icon"></i>
+          </div>
+          <div class="chart-container">
+            <canvas id="alcoholChart"></canvas>
+          </div>
+        </div>
+
+        <!-- GPS Location -->
+        <div class="card" style="margin-top: 2rem;">
+          <div class="card-header">
+            <h2 class="card-title">GPS Location</h2>
+            <i class="fas fa-map-marker-alt card-icon"></i>
+          </div>
+          <% if (gpsLocation) { %>
+            <div class="map-container" id="mapContainer">
+              <div class="map-placeholder">
+                <i class="fas fa-map-marked-alt" style="font-size: 3rem; color: #999; margin-bottom: 1rem;"></i>
+                <p>Coordinates: <%= gpsLocation.latitude %>, <%= gpsLocation.longitude %></p>
+                <p style="font-size: 0.9rem; color: #666; margin-top: 0.5rem;">
+                  Last Updated: <%= new Date(gpsLocation.timestamp).toLocaleString() %>
+                </p>
+                <button onclick="openGoogleMaps(<%= gpsLocation.latitude %>, <%= gpsLocation.longitude %>)" 
+                        style="margin-top: 1rem; padding: 0.7rem 1.5rem; background: #00ff88; border: none; border-radius: 5px; cursor: pointer; font-weight: 600;">
+                  <i class="fas fa-external-link-alt"></i> View on Google Maps
+                </button>
+              </div>
+            </div>
+          <% } else { %>
+            <div class="no-data">
+              <i class="fas fa-map-marked-alt" style="font-size: 3rem;"></i>
+              <p>No GPS data available</p>
+            </div>
+          <% } %>
+        </div>
+      </div>
+
+      <!-- Right Column -->
+      <div>
+        <!-- Active Alerts -->
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">Active Alerts</h2>
+            <i class="fas fa-bell card-icon"></i>
+          </div>
+          
+          <div class="alerts-list">
+            <% if (alerts.length > 0) { %>
+              <% alerts.forEach(alert => { %>
+                <div class="alert-item <%= alert.alert_type === 'HIGH_ALCOHOL' ? 'danger' : '' %>">
+                  <div class="alert-content">
+                    <strong><i class="fas fa-exclamation-circle"></i> <%= alert.alert_type.replace(/_/g, ' ') %></strong>
+                    <p><%= alert.message %></p>
+                    <% if (alert.alcohol_level) { %>
+                      <p>BAC: <%= alert.alcohol_level.toFixed(3) %>%</p>
+                    <% } %>
+                    <div class="alert-time">
+                      <%= new Date(alert.timestamp).toLocaleString() %>
+                    </div>
+                  </div>
+                  <button class="resolve-btn" onclick="resolveAlert(<%= alert.id %>)">
+                    <i class="fas fa-check"></i> Resolve
+                  </button>
+                </div>
+              <% }) %>
+            <% } else { %>
+              <div class="no-data">
+                <i class="fas fa-check-circle" style="font-size: 3rem; color: #4CAF50;"></i>
+                <p>No active alerts</p>
+              </div>
+            <% } %>
+          </div>
+        </div>
+
+        <!-- Vehicle Status -->
+        <div class="card" style="margin-top: 2rem;">
+          <div class="card-header">
+            <h2 class="card-title">Vehicle Control</h2>
+            <i class="fas fa-cog card-icon"></i>
+          </div>
+          
+          <div class="vehicle-info">
+            <div class="vehicle-item">
+              <span class="vehicle-label"><i class="fas fa-car"></i> State</span>
+              <span class="vehicle-value <%= vehicleStatus ? vehicleStatus.vehicle_state.toLowerCase() : 'idle' %>">
+                <%= vehicleStatus ? vehicleStatus.vehicle_state : 'IDLE' %>
+              </span>
+            </div>
+            
+            <div class="vehicle-item">
+              <span class="vehicle-label"><i class="fas fa-power-off"></i> Engine</span>
+              <span class="vehicle-value <%= vehicleStatus && vehicleStatus.engine_status === 'ON' ? 'running' : 'idle' %>">
+                <%= vehicleStatus ? vehicleStatus.engine_status : 'OFF' %>
+              </span>
+            </div>
+            
+            <div class="vehicle-item">
+              <span class="vehicle-label"><i class="fas fa-shield-alt"></i> Safety Lock</span>
+              <span class="vehicle-value <%= latestReading && latestReading.status === 'DANGER' ? 'locked' : 'running' %>">
+                <%= latestReading && latestReading.status === 'DANGER' ? 'ENGAGED' : 'DISENGAGED' %>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- System Status -->
+        <div class="card" style="margin-top: 2rem;">
+          <div class="card-header">
+            <h2 class="card-title">System Status</h2>
+            <i class="fas fa-server card-icon"></i>
+          </div>
+          
+          <div class="vehicle-info">
+            <div class="vehicle-item">
+              <span class="vehicle-label"><i class="fas fa-microchip"></i> MQ-3 Sensor</span>
+              <span class="vehicle-value running">ACTIVE</span>
+            </div>
+            
+            <div class="vehicle-item">
+              <span class="vehicle-label"><i class="fas fa-satellite-dish"></i> GPS Module</span>
+              <span class="vehicle-value <%= gpsLocation ? 'running' : 'idle' %>">
+                <%= gpsLocation ? 'CONNECTED' : 'DISCONNECTED' %>
+              </span>
+            </div>
+            
+            <div class="vehicle-item">
+              <span class="vehicle-label"><i class="fas fa-signal"></i> GSM Network</span>
+              <span class="vehicle-value running">ONLINE</span>
+            </div>
+            
+            <div class="vehicle-item">
+              <span class="vehicle-label"><i class="fas fa-clock"></i> Monitoring</span>
+              <span class="vehicle-value running">2s Interval</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <script>
+    // Initialize Chart
+    let alcoholChart;
+    
+    function initChart(data) {
+      const ctx = document.getElementById('alcoholChart');
+      if (!ctx) return;
+      
+      const labels = data.map(d => new Date(d.timestamp).toLocaleTimeString());
+      const values = data.map(d => d.alcohol_level);
+      
+      if (alcoholChart) {
+        alcoholChart.destroy();
+      }
+      
+      alcoholChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'BAC Level (%)',
+            data: values,
+            borderColor: '#00ff88',
+            backgroundColor: 'rgba(0, 255, 136, 0.1)',
+            tension: 0.4,
+            fill: true,
+            pointRadius: 3,
+            pointHoverRadius: 6
+          }, {
+            label: 'Legal Limit',
+            data: Array(labels.length).fill(0.08),
+            borderColor: '#f44336',
+            borderDash: [5, 5],
+            borderWidth: 2,
+            pointRadius: 0,
+            fill: false
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: true,
+              position: 'top'
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              max: 0.15,
+              ticks: {
+                callback: function(value) {
+                  return value.toFixed(2) + '%';
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+    
+    // Load historical data
+    function loadHistoricalData() {
+      fetch('/api/sensor-history?hours=24')
+        .then(res => res.json())
+        .then(data => {
+          if (data.length > 0) {
+            initChart(data);
+          }
+        })
+        .catch(err => console.error('Error loading chart data:', err));
+    }
+    
+    // Real-time updates
+    function updateDashboard() {
+      fetch('/api/latest-data')
+        .then(res => res.json())
+        .then(data => {
+          if (data.latest_reading) {
+            const reading = JSON.parse(data.latest_reading);
+            const bacElement = document.getElementById('bacReading');
+            const statusElement = document.getElementById('statusBadge');
+            
+            if (bacElement) {
+              bacElement.textContent = reading.alcohol_level.toFixed(3) + '%';
+              bacElement.className = 'bac-reading ' + reading.status.toLowerCase();
+            }
+            
+            if (statusElement) {
+              statusElement.textContent = reading.status;
+              statusElement.className = 'status-badge ' + reading.status.toLowerCase();
+            }
+          }
+        })
+        .catch(err => console.error('Error updating dashboard:', err));
+    }
+    
+    // Resolve alert
+    function resolveAlert(alertId) {
+      if (!confirm('Mark this alert as resolved?')) return;
+      
+      fetch(`/api/resolve-alert/${alertId}`, {
+        method: 'POST'
+      })
+        .then(res => res.json())
+        .then(() => {
+          location.reload();
+        })
+        .catch(err => console.error('Error resolving alert:', err));
+    }
+    
+    // Open Google Maps
+    function openGoogleMaps(lat, lng) {
+      window.open(`https://www.google.com/maps?q=${lat},${lng}`, '_blank');
+    }
+    
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', () => {
+      loadHistoricalData();
+      
+      // Update every 5 seconds
+      setInterval(updateDashboard, 5000);
+      
+      // Reload chart every minute
+      setInterval(loadHistoricalData, 60000);
+    });
+  </script>
+</body>
+</html>
