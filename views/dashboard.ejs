@@ -3,9 +3,34 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dashboard - SafeDrive AI</title>
+  <title>Dashboard - SafeDrive </title>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <%
+    // Helper function to format timestamps in Nairobi timezone
+    function formatNairobiTime(date) {
+      if (!date) return 'N/A';
+      return new Date(date).toLocaleTimeString('en-KE', { 
+        timeZone: 'Africa/Nairobi',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      });
+    }
+    
+    function formatNairobiDateTime(date) {
+      if (!date) return 'N/A';
+      return new Date(date).toLocaleString('en-KE', { 
+        timeZone: 'Africa/Nairobi',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      });
+    }
+  %>
   <style>
     * {
       margin: 0;
@@ -102,6 +127,30 @@
     .status-item.danger i { color: #f44336; }
     .status-item.idle i { color: #2196F3; }
     .status-item.running i { color: #4CAF50; }
+    .status-item.locked { 
+      background: linear-gradient(135deg, #f44336, #d32f2f);
+      color: white;
+      animation: pulse 2s infinite;
+    }
+    .status-item.locked i { 
+      color: white;
+      animation: shake 0.5s infinite;
+    }
+    .status-item.locked .status-label,
+    .status-item.locked .status-time {
+      color: white !important;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.85; }
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      75% { transform: translateX(5px); }
+    }
 
     .status-value {
       font-size: 2rem;
@@ -168,49 +217,66 @@
       font-size: 4rem;
       font-weight: bold;
       margin: 1rem 0;
-      background: linear-gradient(135deg, #00ff88, #00cc6f);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+      transition: all 0.3s ease;
     }
 
-    .bac-reading.danger {
-      background: linear-gradient(135deg, #f44336, #d32f2f);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+    .bac-reading.safe {
+      color: #4CAF50;
+      text-shadow: 0 0 20px rgba(76, 175, 80, 0.5);
     }
 
     .bac-reading.warning {
-      background: linear-gradient(135deg, #ffc107, #ff9800);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+      color: #FFC107;
+      text-shadow: 0 0 20px rgba(255, 193, 7, 0.7);
+      animation: pulse-text 1.5s ease-in-out infinite;
+    }
+
+    .bac-reading.danger {
+      color: #f44336;
+      text-shadow: 0 0 30px rgba(244, 67, 54, 0.8);
+      animation: pulse-text 1s ease-in-out infinite;
+    }
+
+    @keyframes pulse-text {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
     }
 
     .status-badge {
       display: inline-block;
-      padding: 0.5rem 1.5rem;
-      border-radius: 25px;
-      font-weight: 600;
+      padding: 0.75rem 2rem;
+      border-radius: 30px;
+      font-weight: 700;
       text-transform: uppercase;
-      font-size: 0.9rem;
+      font-size: 1.1rem;
       margin-top: 1rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      transition: all 0.3s ease;
     }
 
     .status-badge.safe {
-      background: #e8f5e9;
-      color: #2e7d32;
+      background: linear-gradient(135deg, #4CAF50, #2e7d32);
+      color: white;
+      border: 3px solid #2e7d32;
     }
 
     .status-badge.warning {
-      background: #fff3e0;
-      color: #f57c00;
+      background: linear-gradient(135deg, #FFC107, #FF9800);
+      color: #000;
+      border: 3px solid #FF6F00;
+      animation: pulse-badge 1.5s ease-in-out infinite;
     }
 
     .status-badge.danger {
-      background: #ffebee;
-      color: #c62828;
+      background: linear-gradient(135deg, #f44336, #d32f2f);
+      color: white;
+      border: 3px solid #b71c1c;
+      animation: pulse-badge 1s ease-in-out infinite;
+    }
+
+    @keyframes pulse-badge {
+      0%, 100% { transform: scale(1); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+      50% { transform: scale(1.05); box-shadow: 0 6px 20px rgba(0,0,0,0.4); }
     }
 
     /* Chart Container */
@@ -397,7 +463,7 @@
   <!-- Header -->
   <div class="header">
     <div class="header-left">
-      <div class="logo"><i class="fas fa-car"></i> SafeDrive AI</div>
+      <div class="logo"><i class="fas fa-car"></i> SafeDrive </div>
     </div>
     <div class="user-info">
       <span><i class="fas fa-user"></i> <%= user.fullName %></span>
@@ -410,41 +476,60 @@
     
     <!-- Status Bar -->
     <div class="status-bar">
-      <div class="status-item <%= latestReading ? latestReading.status.toLowerCase() : 'safe' %>">
+      <div class="status-item <%= (latestReading && (latestReading.status === 'DANGER' || (vehicleStatus && vehicleStatus.vehicle_state === 'LOCKED'))) ? 'danger' : (latestReading && latestReading.status === 'WARNING') ? 'warning' : 'safe' %>" id="topStatusItem">
         <i class="fas fa-wine-bottle"></i>
-        <div class="status-value">
-          <%= latestReading ? latestReading.alcohol_level.toFixed(3) : '0.000' %>%
+        <div class="status-value" id="topSensorValue">
+          <%= latestReading && latestReading.raw_reading ? latestReading.raw_reading : '0' %>
         </div>
-        <div class="status-label">Blood Alcohol Content</div>
+        <div class="status-label">Alcohol Sensor Value</div>
         <% if (latestReading) { %>
-          <div class="status-time">
-            Updated: <%= new Date(latestReading.timestamp).toLocaleTimeString() %>
+          <div class="status-time" id="topSensorTime">
+            Updated: <%= formatNairobiTime(latestReading.timestamp) %>
           </div>
         <% } %>
       </div>
 
-      <div class="status-item <%= vehicleStatus ? vehicleStatus.vehicle_state.toLowerCase() : 'idle' %>">
-        <i class="fas fa-<%= vehicleStatus && vehicleStatus.vehicle_state === 'RUNNING' ? 'car' : 'pause-circle' %>"></i>
-        <div class="status-value">
-          <%= vehicleStatus ? vehicleStatus.vehicle_state : 'IDLE' %>
-        </div>
-        <div class="status-label">Vehicle Status</div>
-        <% if (vehicleStatus) { %>
+      <div class="status-item <%= vehicleStatus ? (vehicleStatus.arduino_status === 'DISCONNECTED' ? 'idle' : vehicleStatus.vehicle_state.toLowerCase()) : 'idle' %>" id="vehicleStatusItem">
+        <% if (vehicleStatus && vehicleStatus.arduino_status === 'DISCONNECTED') { %>
+          <i class="fas fa-power-off"></i>
+          <div class="status-value">⚫ OFF</div>
+          <div class="status-label">Vehicle Status</div>
+          <div class="status-time" style="color: #999;">
+            ⚠️ Arduino disconnected - No data
+          </div>
+        <% } else if (vehicleStatus && vehicleStatus.vehicle_state === 'LOCKED') { %>
+          <i class="fas fa-lock"></i>
+          <div class="status-value">🔒 LOCKED</div>
+          <div class="status-label">VEHICLE OFF - ENGINE BLOCKED</div>
+          <div class="status-time" style="color: #f44336; font-weight: bold;">
+            ⚠️ Cannot start due to high alcohol level
+          </div>
+        <% } else if (vehicleStatus && vehicleStatus.vehicle_state === 'RUNNING') { %>
+          <i class="fas fa-car"></i>
+          <div class="status-value">🚗 RUNNING</div>
+          <div class="status-label">Vehicle Status</div>
           <div class="status-time">
-            Engine: <%= vehicleStatus.engine_status %>
+            Engine: <%= vehicleStatus.engine_status || 'ON' %>
+          </div>
+        <% } else { %>
+          <i class="fas fa-pause-circle"></i>
+          <div class="status-value">IDLE</div>
+          <div class="status-label">Vehicle Status</div>
+          <div class="status-time">
+            Engine: OFF
           </div>
         <% } %>
       </div>
 
-      <div class="status-item <%= alerts.length > 0 ? 'danger' : 'safe' %>">
+      <div class="status-item <%= alerts.length > 0 ? 'danger' : 'safe' %>" id="topAlertsItem">
         <i class="fas fa-exclamation-triangle"></i>
-        <div class="status-value"><%= alerts.length %></div>
+        <div class="status-value" id="topAlertsCount"><%= alerts.length %></div>
         <div class="status-label">Active Alerts</div>
       </div>
 
-      <div class="status-item">
+      <div class="status-item" id="topReadingsItem">
         <i class="fas fa-chart-line"></i>
-        <div class="status-value"><%= stats.total_readings || 0 %></div>
+        <div class="status-value" id="topReadingsCount"><%= stats.total_readings || 0 %></div>
         <div class="status-label">Readings Today</div>
       </div>
     </div>
@@ -465,30 +550,56 @@
           
           <div class="monitor-display">
             <div class="bac-reading <%= latestReading ? latestReading.status.toLowerCase() : 'safe' %>" id="bacReading">
-              <%= latestReading ? latestReading.alcohol_level.toFixed(3) : '0.000' %>%
+              <%= latestReading && latestReading.raw_reading ? latestReading.raw_reading : '0' %>
             </div>
-            <div class="status-badge <%= latestReading ? latestReading.status.toLowerCase() : 'safe' %>" id="statusBadge">
-              <%= latestReading ? latestReading.status : 'SAFE' %>
+            <div style="margin-top: 1rem; padding: 0.75rem; background: #f5f5f5; border-radius: 8px;">
+              <div style="font-size: 0.9rem; color: #666; margin-bottom: 0.5rem;">Sensor Thresholds:</div>
+              <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                  <span style="width: 12px; height: 12px; background: #4CAF50; border-radius: 50%; display: inline-block;"></span>
+                  <span style="font-size: 0.85rem; color: #666;"><strong>&lt; 180</strong> SAFE</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                  <span style="width: 12px; height: 12px; background: #ffc107; border-radius: 50%; display: inline-block;"></span>
+                  <span style="font-size: 0.85rem; color: #666;"><strong>180-249</strong> WARNING</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                  <span style="width: 12px; height: 12px; background: #f44336; border-radius: 50%; display: inline-block;"></span>
+                  <span style="font-size: 0.85rem; color: #666;"><strong>≥ 250</strong> DANGER</span>
+                </div>
+              </div>
             </div>
-            <p style="margin-top: 1rem; color: #666;">Legal Limit: 0.080% BAC</p>
           </div>
 
           <div class="stats-grid">
             <div class="stat-box">
-              <div class="stat-value"><%= stats.avg_level ? stats.avg_level.toFixed(3) : '0.000' %>%</div>
+              <div class="stat-value" id="avgRawValue"><%= stats.avg_raw ? Math.round(stats.avg_raw) : '0' %></div>
               <div class="stat-label">Average Today</div>
             </div>
             <div class="stat-box">
-              <div class="stat-value"><%= stats.max_level ? stats.max_level.toFixed(3) : '0.000' %>%</div>
+              <div class="stat-value" id="maxRawValue"><%= stats.max_raw ? stats.max_raw : '0' %></div>
               <div class="stat-label">Peak Today</div>
             </div>
             <div class="stat-box">
-              <div class="stat-value"><%= stats.danger_count || 0 %></div>
+              <div class="stat-value" id="dangerCountValue"><%= stats.danger_count || 0 %></div>
               <div class="stat-label">Danger Events</div>
             </div>
             <div class="stat-box">
-              <div class="stat-value" style="color: <%= latestReading && latestReading.status === 'SAFE' ? '#4CAF50' : '#f44336' %>">
-                <%= latestReading && latestReading.status === 'SAFE' ? 'SAFE' : 'UNSAFE' %>
+              <% 
+                let stateColor = '#4CAF50';
+                let stateText = 'SAFE';
+                if (latestReading) {
+                  if (latestReading.status === 'DANGER' || (vehicleStatus && vehicleStatus.vehicle_state === 'LOCKED')) {
+                    stateColor = '#f44336';
+                    stateText = 'DANGER';
+                  } else if (latestReading.status === 'WARNING') {
+                    stateColor = '#ffc107';
+                    stateText = 'WARNING';
+                  }
+                }
+              %>
+              <div class="stat-value" id="currentStateValue" style="color: <%= stateColor %>">
+                <%= stateText %>
               </div>
               <div class="stat-label">Current State</div>
             </div>
@@ -512,26 +623,95 @@
             <h2 class="card-title">GPS Location</h2>
             <i class="fas fa-map-marker-alt card-icon"></i>
           </div>
-          <% if (gpsLocation) { %>
-            <div class="map-container" id="mapContainer">
-              <div class="map-placeholder">
-                <i class="fas fa-map-marked-alt" style="font-size: 3rem; color: #999; margin-bottom: 1rem;"></i>
-                <p>Coordinates: <%= gpsLocation.latitude %>, <%= gpsLocation.longitude %></p>
-                <p style="font-size: 0.9rem; color: #666; margin-top: 0.5rem;">
-                  Last Updated: <%= new Date(gpsLocation.timestamp).toLocaleString() %>
-                </p>
-                <button onclick="openGoogleMaps(<%= gpsLocation.latitude %>, <%= gpsLocation.longitude %>)" 
-                        style="margin-top: 1rem; padding: 0.7rem 1.5rem; background: #00ff88; border: none; border-radius: 5px; cursor: pointer; font-weight: 600;">
-                  <i class="fas fa-external-link-alt"></i> View on Google Maps
-                </button>
+          <div class="map-container" id="mapContainer">
+            <div class="map-placeholder" id="gpsPlaceholder">
+              <i class="fas fa-map-marked-alt" style="font-size: 3rem; color: #999; margin-bottom: 1rem;"></i>
+              <p id="gpsCoordinates">
+                <% if (gpsLocation) { %>
+                  Coordinates: <%= gpsLocation.latitude %>, <%= gpsLocation.longitude %>
+                <% } else { %>
+                  Fetching location...
+                <% } %>
+              </p>
+              <p style="font-size: 0.9rem; color: #666; margin-top: 0.5rem;" id="gpsTimestamp">
+                <% if (gpsLocation) { %>
+                  Last Updated: <%= formatNairobiDateTime(gpsLocation.timestamp) %>
+                <% } else { %>
+                  Waiting for GPS data...
+                <% } %>
+              </p>
+              <button id="viewMapBtn" onclick="openGoogleMapsFromCurrent()" 
+                      style="margin-top: 1rem; padding: 0.7rem 1.5rem; background: #00ff88; border: none; border-radius: 5px; cursor: pointer; font-weight: 600;">
+                <i class="fas fa-external-link-alt"></i> View on Google Maps
+              </button>
+              <button id="refreshGPSBtn" onclick="getCurrentLocation()" 
+                      style="margin-left: 0.5rem; padding: 0.7rem 1.5rem; background: #2196F3; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: 600;">
+                <i class="fas fa-sync-alt"></i> Refresh Location
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Emergency Contacts -->
+        <div class="card" style="margin-top: 2rem;">
+          <div class="card-header">
+            <h2 class="card-title">Emergency Contacts</h2>
+            <i class="fas fa-phone-alt card-icon"></i>
+          </div>
+          <div class="contacts-container">
+            <div id="contactsList" style="margin-bottom: 1rem;">
+              <!-- Emergency contacts will be loaded here -->
+              <div class="contact-item" style="padding: 0.8rem; background: #f8f9fa; border-radius: 5px; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                  <i class="fas fa-spinner fa-spin"></i> Loading contacts...
+                </div>
               </div>
             </div>
-          <% } else { %>
-            <div class="no-data">
-              <i class="fas fa-map-marked-alt" style="font-size: 3rem;"></i>
-              <p>No GPS data available</p>
+            
+            <div class="add-contact-form" style="border-top: 2px solid #e0e0e0; padding-top: 1rem; margin-top: 1rem;">
+              <h3 style="font-size: 1rem; margin-bottom: 0.8rem; color: #333;">
+                <i class="fas fa-plus-circle"></i> Add New Contact
+              </h3>
+              <form id="addContactForm" style="display: flex; flex-direction: column; gap: 0.8rem;">
+                <div>
+                  <input 
+                    type="text" 
+                    id="contactName" 
+                    placeholder="Contact Name (e.g., John Doe)"
+                    required
+                    style="width: 100%; padding: 0.7rem; border: 1px solid #ddd; border-radius: 5px; font-size: 0.95rem;">
+                </div>
+                <div>
+                  <input 
+                    type="tel" 
+                    id="contactPhone" 
+                    placeholder="Phone Number (e.g., +254712345678)"
+                    required
+                    pattern="[\+]?[0-9]{10,15}"
+                    style="width: 100%; padding: 0.7rem; border: 1px solid #ddd; border-radius: 5px; font-size: 0.95rem;">
+                  <small style="color: #666; font-size: 0.85rem;">Format: +254XXXXXXXXX</small>
+                </div>
+                <div>
+                  <select 
+                    id="contactRelationship" 
+                    required
+                    style="width: 100%; padding: 0.7rem; border: 1px solid #ddd; border-radius: 5px; font-size: 0.95rem;">
+                    <option value="">Select Relationship</option>
+                    <option value="Family">Family</option>
+                    <option value="Friend">Friend</option>
+                    <option value="Guardian">Guardian</option>
+                    <option value="Emergency">Emergency Service</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+                <button 
+                  type="submit" 
+                  style="padding: 0.8rem; background: #00ff88; border: none; border-radius: 5px; font-weight: 600; cursor: pointer; transition: all 0.3s;">
+                  <i class="fas fa-user-plus"></i> Add Contact
+                </button>
+              </form>
             </div>
-          <% } %>
+          </div>
         </div>
       </div>
 
@@ -544,7 +724,7 @@
             <i class="fas fa-bell card-icon"></i>
           </div>
           
-          <div class="alerts-list">
+          <div class="alerts-list" id="alertsList">
             <% if (alerts.length > 0) { %>
               <% alerts.forEach(alert => { %>
                 <div class="alert-item <%= alert.alert_type === 'HIGH_ALCOHOL' ? 'danger' : '' %>">
@@ -555,7 +735,7 @@
                       <p>BAC: <%= alert.alcohol_level.toFixed(3) %>%</p>
                     <% } %>
                     <div class="alert-time">
-                      <%= new Date(alert.timestamp).toLocaleString() %>
+                      <%= formatNairobiDateTime(alert.timestamp) %>
                     </div>
                   </div>
                   <button class="resolve-btn" onclick="resolveAlert(<%= alert.id %>)">
@@ -582,22 +762,29 @@
           <div class="vehicle-info">
             <div class="vehicle-item">
               <span class="vehicle-label"><i class="fas fa-car"></i> State</span>
-              <span class="vehicle-value <%= vehicleStatus ? vehicleStatus.vehicle_state.toLowerCase() : 'idle' %>">
+              <span class="vehicle-value <%= vehicleStatus ? vehicleStatus.vehicle_state.toLowerCase() : 'idle' %>" id="vehicleState">
                 <%= vehicleStatus ? vehicleStatus.vehicle_state : 'IDLE' %>
               </span>
             </div>
             
             <div class="vehicle-item">
               <span class="vehicle-label"><i class="fas fa-power-off"></i> Engine</span>
-              <span class="vehicle-value <%= vehicleStatus && vehicleStatus.engine_status === 'ON' ? 'running' : 'idle' %>">
+              <span class="vehicle-value <%= vehicleStatus && vehicleStatus.engine_status === 'ON' ? 'running' : 'idle' %>" id="engineStatus">
                 <%= vehicleStatus ? vehicleStatus.engine_status : 'OFF' %>
               </span>
             </div>
             
             <div class="vehicle-item">
               <span class="vehicle-label"><i class="fas fa-shield-alt"></i> Safety Lock</span>
-              <span class="vehicle-value <%= latestReading && latestReading.status === 'DANGER' ? 'locked' : 'running' %>">
+              <span class="vehicle-value <%= latestReading && latestReading.status === 'DANGER' ? 'locked' : 'running' %>" id="safetyLock">
                 <%= latestReading && latestReading.status === 'DANGER' ? 'ENGAGED' : 'DISENGAGED' %>
+              </span>
+            </div>
+            
+            <div class="vehicle-item">
+              <span class="vehicle-label"><i class="fas fa-tachometer-alt"></i> Raw Sensor</span>
+              <span class="vehicle-value running" id="rawSensor">
+                <%= latestReading && latestReading.raw_reading ? latestReading.raw_reading : '0' %>
               </span>
             </div>
           </div>
@@ -642,6 +829,32 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   
   <script>
+    // Nairobi timezone formatting helper functions
+    const nairobiTimezone = 'Africa/Nairobi';
+    
+    function formatNairobiTime(dateString) {
+      const date = new Date(dateString);
+      return date.toLocaleTimeString('en-KE', { 
+        timeZone: nairobiTimezone,
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      });
+    }
+    
+    function formatNairobiDateTime(dateString) {
+      const date = new Date(dateString);
+      return date.toLocaleString('en-KE', { 
+        timeZone: nairobiTimezone,
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      });
+    }
+    
     // Initialize Chart
     let alcoholChart;
     
@@ -649,8 +862,8 @@
       const ctx = document.getElementById('alcoholChart');
       if (!ctx) return;
       
-      const labels = data.map(d => new Date(d.timestamp).toLocaleTimeString());
-      const values = data.map(d => d.alcohol_level);
+      const labels = data.map(d => formatNairobiTime(d.timestamp));
+      const values = data.map(d => d.raw_reading || 0);
       
       if (alcoholChart) {
         alcoholChart.destroy();
@@ -661,7 +874,7 @@
         data: {
           labels: labels,
           datasets: [{
-            label: 'BAC Level (%)',
+            label: 'Sensor Value',
             data: values,
             borderColor: '#00ff88',
             backgroundColor: 'rgba(0, 255, 136, 0.1)',
@@ -670,8 +883,16 @@
             pointRadius: 3,
             pointHoverRadius: 6
           }, {
-            label: 'Legal Limit',
-            data: Array(labels.length).fill(0.08),
+            label: 'WARNING (180)',
+            data: Array(labels.length).fill(180),
+            borderColor: '#ffc107',
+            borderDash: [5, 5],
+            borderWidth: 2,
+            pointRadius: 0,
+            fill: false
+          }, {
+            label: 'DANGER (250)',
+            data: Array(labels.length).fill(250),
             borderColor: '#f44336',
             borderDash: [5, 5],
             borderWidth: 2,
@@ -691,10 +912,10 @@
           scales: {
             y: {
               beginAtZero: true,
-              max: 0.15,
+              max: 400,
               ticks: {
                 callback: function(value) {
-                  return value.toFixed(2) + '%';
+                  return value;
                 }
               }
             }
@@ -705,9 +926,12 @@
     
     // Load historical data
     function loadHistoricalData() {
-      fetch('/api/sensor-history?hours=24')
+      console.log('📈 Loading chart data...', formatNairobiTime(new Date()));
+      
+      fetch('/api/sensor-history?hours=24&t=' + Date.now())
         .then(res => res.json())
         .then(data => {
+          console.log('📊 Chart data points:', data.length);
           if (data.length > 0) {
             initChart(data);
           }
@@ -715,28 +939,455 @@
         .catch(err => console.error('Error loading chart data:', err));
     }
     
+    // Update alerts list dynamically
+    function updateAlertsList(alerts) {
+      const alertsList = document.getElementById('alertsList');
+      if (!alertsList) return;
+      
+      console.log('🔔 Updating alerts list:', alerts.length, 'alerts');
+      
+      if (alerts.length === 0) {
+        alertsList.innerHTML = `
+          <div class="no-data">
+            <i class="fas fa-check-circle" style="font-size: 3rem; color: #4CAF50;"></i>
+            <p>No active alerts</p>
+          </div>
+        `;
+      } else {
+        let alertsHTML = '';
+        alerts.forEach(alert => {
+          const isDanger = alert.alert_type === 'HIGH_ALCOHOL';
+          const alertTime = formatNairobiDateTime(alert.timestamp);
+          const alertType = alert.alert_type.replace(/_/g, ' ');
+          
+          alertsHTML += `
+            <div class="alert-item ${isDanger ? 'danger' : ''}">
+              <div class="alert-content">
+                <strong><i class="fas fa-exclamation-circle"></i> ${alertType}</strong>
+                <p>${alert.message}</p>
+                ${alert.alcohol_level ? `<p>BAC: ${alert.alcohol_level.toFixed(3)}%</p>` : ''}
+                <div class="alert-time">${alertTime}</div>
+              </div>
+              <button class="resolve-btn" onclick="resolveAlert(${alert.id})">
+                <i class="fas fa-check"></i> Resolve
+              </button>
+            </div>
+          `;
+        });
+        alertsList.innerHTML = alertsHTML;
+      }
+      
+      console.log('✓ Alerts list updated');
+    }
+    
     // Real-time updates
     function updateDashboard() {
-      fetch('/api/latest-data')
+      console.log('🔄 Updating dashboard...', formatNairobiTime(new Date()));
+      
+      // Add cache-busting parameter to prevent browser caching
+      fetch('/api/latest-data?t=' + Date.now(), {
+        method: 'GET',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      })
         .then(res => res.json())
         .then(data => {
+          console.log('📡 Received data:', data);
+          
           if (data.latest_reading) {
-            const reading = JSON.parse(data.latest_reading);
+            const reading = typeof data.latest_reading === 'string' 
+              ? JSON.parse(data.latest_reading) 
+              : data.latest_reading;
+            
+            console.log('📊 Sensor reading:', reading);
+            
+            // Update top status bar
+            const topStatusItem = document.getElementById('topStatusItem');
+            const topSensorValue = document.getElementById('topSensorValue');
+            const topSensorTime = document.getElementById('topSensorTime');
+            
             const bacElement = document.getElementById('bacReading');
             const statusElement = document.getElementById('statusBadge');
             
+            // Update sensor reading and status
             if (bacElement) {
-              bacElement.textContent = reading.alcohol_level.toFixed(3) + '%';
+              bacElement.textContent = reading.raw_reading || 'N/A';
               bacElement.className = 'bac-reading ' + reading.status.toLowerCase();
+              console.log('✓ Updated bacReading:', reading.raw_reading);
             }
             
             if (statusElement) {
               statusElement.textContent = reading.status;
               statusElement.className = 'status-badge ' + reading.status.toLowerCase();
+              console.log('✓ Updated status:', reading.status);
+            }
+            
+            // Update vehicle control elements
+            if (data.vehicle_status) {
+              const vehicleStatus = typeof data.vehicle_status === 'string'
+                ? JSON.parse(data.vehicle_status)
+                : data.vehicle_status;
+              
+              console.log('🚗 Vehicle status:', vehicleStatus);
+              
+              // Update current state stat box (after getting vehicle status)
+              const currentStateValue = document.getElementById('currentStateValue');
+              console.log('🎯 currentStateValue element:', currentStateValue);
+              
+              if (currentStateValue) {
+                let stateColor = '#4CAF50';
+                let stateText = 'SAFE';
+                
+                console.log('📍 Reading status:', reading.status, ', Vehicle state:', vehicleStatus.vehicle_state);
+                
+                if (reading.status === 'DANGER' || vehicleStatus.vehicle_state === 'LOCKED') {
+                  stateColor = '#f44336';
+                  stateText = 'DANGER';
+                } else if (reading.status === 'WARNING') {
+                  stateColor = '#ffc107';
+                  stateText = 'WARNING';
+                }
+                
+                currentStateValue.textContent = stateText;
+                currentStateValue.style.color = stateColor;
+                console.log('✓ Updated currentState:', stateText, 'with color:', stateColor);
+              } else {
+                console.error('❌ currentStateValue element not found!');
+              }
+              
+              // Update top status bar with real-time data
+              if (topStatusItem && topSensorValue) {
+                topSensorValue.textContent = reading.raw_reading || '0';
+                
+                // Determine status class based on reading and vehicle state
+                let statusClass = 'safe';
+                if (reading.status === 'DANGER' || vehicleStatus.vehicle_state === 'LOCKED') {
+                  statusClass = 'danger';
+                } else if (reading.status === 'WARNING') {
+                  statusClass = 'warning';
+                }
+                
+                topStatusItem.className = 'status-item ' + statusClass;
+                console.log('✓ Updated top status bar:', reading.raw_reading, 'with status:', statusClass);
+              }
+              
+              if (topSensorTime) {
+                topSensorTime.textContent = 'Updated: ' + formatNairobiTime(reading.timestamp);
+              }
+              
+              // Update top vehicle status item based on Arduino connection
+              const vehicleStatusItem = document.getElementById('vehicleStatusItem');
+              if (vehicleStatusItem) {
+                let statusClass = 'idle';
+                let statusIcon = '<i class="fas fa-pause-circle"></i>';
+                let statusValue = 'IDLE';
+                let statusLabel = 'Vehicle Status';
+                let statusTime = '';
+                
+                if (vehicleStatus.arduino_status === 'DISCONNECTED') {
+                  statusIcon = '<i class="fas fa-power-off"></i>';
+                  statusValue = '⚫ OFF';
+                  statusLabel = 'Vehicle Status';
+                  statusTime = '<div class="status-time" style="color: #999;">⚠️ Arduino disconnected - No data</div>';
+                } else if (vehicleStatus.vehicle_state === 'LOCKED') {
+                  statusClass = 'locked';
+                  statusIcon = '<i class="fas fa-lock"></i>';
+                  statusValue = '🔒 LOCKED';
+                  statusLabel = 'VEHICLE OFF - ENGINE BLOCKED';
+                  statusTime = '<div class="status-time" style="color: #f44336; font-weight: bold;">⚠️ Cannot start due to high alcohol level</div>';
+                } else if (vehicleStatus.vehicle_state === 'RUNNING') {
+                  statusClass = 'running';
+                  statusIcon = '<i class="fas fa-car"></i>';
+                  statusValue = '🚗 RUNNING';
+                  statusLabel = 'Vehicle Status';
+                  statusTime = '<div class="status-time">Engine: ' + (vehicleStatus.engine_status || 'ON') + '</div>';
+                }
+                
+                vehicleStatusItem.className = 'status-item ' + statusClass;
+                vehicleStatusItem.innerHTML = statusIcon + 
+                  '<div class="status-value">' + statusValue + '</div>' +
+                  '<div class="status-label">' + statusLabel + '</div>' + statusTime;
+                  
+                console.log('✓ Updated vehicle status item:', statusValue, 'arduino:', vehicleStatus.arduino_status);
+              }
+              
+              const vehicleState = document.getElementById('vehicleState');
+              const engineStatus = document.getElementById('engineStatus');
+              const safetyLock = document.getElementById('safetyLock');
+              const rawSensor = document.getElementById('rawSensor');
+              
+              if (vehicleState) {
+                vehicleState.textContent = vehicleStatus.vehicle_state || 'IDLE';
+                vehicleState.className = 'vehicle-value ' + (vehicleStatus.vehicle_state || 'idle').toLowerCase();
+                console.log('✓ Updated vehicleState:', vehicleStatus.vehicle_state);
+              }
+              
+              if (engineStatus) {
+                engineStatus.textContent = vehicleStatus.engine_status || 'OFF';
+                engineStatus.className = 'vehicle-value ' + (vehicleStatus.engine_status === 'ON' ? 'running' : 'idle');
+                console.log('✓ Updated engineStatus:', vehicleStatus.engine_status);
+              }
+              
+              if (safetyLock) {
+                const isEngaged = reading.status === 'DANGER' || vehicleStatus.vehicle_state === 'LOCKED';
+                safetyLock.textContent = isEngaged ? 'ENGAGED' : 'DISENGAGED';
+                safetyLock.className = 'vehicle-value ' + (isEngaged ? 'locked' : 'running');
+                console.log('✓ Updated safetyLock:', isEngaged ? 'ENGAGED' : 'DISENGAGED', '(status:', reading.status, ', vehicle:', vehicleStatus.vehicle_state + ')');
+              }
+              
+              if (rawSensor) {
+                rawSensor.textContent = reading.raw_reading || '0';
+                console.log('✓ Updated rawSensor:', reading.raw_reading);
+              }
+            }
+          } else {
+            console.warn('⚠️ No latest_reading in response');
+          }
+          
+          // Update alerts count in top status bar
+          if (data.alerts) {
+            const alerts = typeof data.alerts === 'string' ? JSON.parse(data.alerts) : data.alerts;
+            const topAlertsItem = document.getElementById('topAlertsItem');
+            const topAlertsCount = document.getElementById('topAlertsCount');
+            
+            if (topAlertsCount) {
+              topAlertsCount.textContent = alerts.length;
+              console.log('✓ Updated alerts count:', alerts.length);
+            }
+            
+            if (topAlertsItem) {
+              topAlertsItem.className = 'status-item ' + (alerts.length > 0 ? 'danger' : 'safe');
+            }
+            
+            // Update alerts list section
+            updateAlertsList(alerts);
+          }
+          
+          // Update stats in top status bar and cards
+          if (data.stats) {
+            const stats = typeof data.stats === 'string' ? JSON.parse(data.stats) : data.stats;
+            
+            const topReadingsCount = document.getElementById('topReadingsCount');
+            const avgRawValue = document.getElementById('avgRawValue');
+            const maxRawValue = document.getElementById('maxRawValue');
+            const dangerCountValue = document.getElementById('dangerCountValue');
+            
+            if (topReadingsCount) {
+              topReadingsCount.textContent = stats.total_readings || 0;
+              console.log('✓ Updated readings count:', stats.total_readings);
+            }
+            
+            if (avgRawValue) {
+              avgRawValue.textContent = stats.avg_raw ? Math.round(stats.avg_raw) : '0';
+            }
+            
+            if (maxRawValue) {
+              maxRawValue.textContent = stats.max_raw || '0';
+            }
+            
+            if (dangerCountValue) {
+              dangerCountValue.textContent = stats.danger_count || 0;
             }
           }
         })
-        .catch(err => console.error('Error updating dashboard:', err));
+        .catch(err => console.error('❌ Error updating dashboard:', err));
+    }
+    
+    // GPS Location variables
+    let currentLatitude = null;
+    let currentLongitude = null;
+    let watchId = null;              // For continuous GPS tracking
+    let bestAccuracy = Infinity;     // Track best accuracy achieved
+    
+    // Get current location from browser with enhanced accuracy
+    function getCurrentLocation() {
+      console.log('📍 Requesting GPS location...');
+      
+      if (!navigator.geolocation) {
+        console.error('❌ Geolocation is not supported by this browser');
+        alert('Your browser does not support geolocation');
+        return;
+      }
+      
+      const refreshBtn = document.getElementById('refreshGPSBtn');
+      if (refreshBtn) {
+        refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Getting Location...';
+        refreshBtn.disabled = true;
+      }
+      
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          currentLatitude = position.coords.latitude;
+          currentLongitude = position.coords.longitude;
+          const accuracy = position.coords.accuracy;
+          
+          console.log('✅ Location obtained:');
+          console.log('   Latitude:', currentLatitude);
+          console.log('   Longitude:', currentLongitude);
+          console.log('   Accuracy:', accuracy, 'meters');
+          console.log('   Timestamp:', new Date(position.timestamp).toLocaleString());
+          
+          // Update display
+          updateGPSDisplay(currentLatitude, currentLongitude, accuracy);
+          
+          // Send to server
+          sendLocationToServer(currentLatitude, currentLongitude);
+          
+          if (refreshBtn) {
+            refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh Location';
+            refreshBtn.disabled = false;
+          }
+        },
+        (error) => {
+          console.error('❌ Error getting location:', error.message);
+          
+          let errorMsg = 'Unable to get location';
+          switch(error.code) {
+            case error.PERMISSION_DENIED:
+              errorMsg = 'Location permission denied. Please enable location access in your browser settings.';
+              break;
+            case error.POSITION_UNAVAILABLE:
+              errorMsg = 'Location information unavailable.';
+              break;
+            case error.TIMEOUT:
+              errorMsg = 'Location request timed out.';
+              break;
+          }
+          
+          alert(errorMsg);
+          
+          if (refreshBtn) {
+            refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh Location';
+            refreshBtn.disabled = false;
+          }
+        },
+        {
+          enableHighAccuracy: true,    // Use GPS instead of WiFi/IP
+          timeout: 30000,               // Increased to 30 seconds for better GPS lock
+          maximumAge: 0                 // Don't use cached position
+        }
+      );
+    }
+    
+    // Update GPS display
+    function updateGPSDisplay(lat, lng, accuracy = null) {
+      const coordsElement = document.getElementById('gpsCoordinates');
+      const timestampElement = document.getElementById('gpsTimestamp');
+      
+      if (coordsElement) {
+        let html = `<strong>Coordinates:</strong> ${lat.toFixed(6)}, ${lng.toFixed(6)}<br>`;
+        
+        if (accuracy) {
+          // Color-coded accuracy indicator
+          let accuracyColor = '#28a745'; // Green
+          let accuracyLevel = 'Excellent';
+          
+          if (accuracy > 100) {
+            accuracyColor = '#dc3545'; // Red
+            accuracyLevel = 'Poor (IP-based)';
+          } else if (accuracy > 50) {
+            accuracyColor = '#ffc107'; // Yellow
+            accuracyLevel = 'Moderate';
+          } else if (accuracy > 20) {
+            accuracyColor = '#17a2b8'; // Blue
+            accuracyLevel = 'Good';
+          }
+          
+          html += `<span style="font-size: 0.85rem; color: ${accuracyColor}; font-weight: bold;">
+                     <i class="fas fa-map-marker-alt"></i> ${accuracyLevel}: ±${Math.round(accuracy)}m
+                   </span><br>`;
+        }
+        
+        html += `<span style="font-size: 0.85rem; color: #666;" id="addressText">Getting address...</span>`;
+        coordsElement.innerHTML = html;
+      }
+      
+      if (timestampElement) {
+        timestampElement.textContent = 'Last Updated: ' + formatNairobiDateTime(new Date());
+      }
+      
+      // Get address from coordinates using reverse geocoding
+      getAddressFromCoordinates(lat, lng);
+      
+      console.log('✓ GPS display updated');
+    }
+    
+    // Get address from coordinates using reverse geocoding
+    function getAddressFromCoordinates(lat, lng) {
+      const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`;
+      
+      fetch(url)
+        .then(res => res.json())
+        .then(data => {
+          console.log('📍 Location details:', data);
+          
+          const addressElement = document.getElementById('addressText');
+          if (addressElement && data.display_name) {
+            addressElement.innerHTML = `<strong>📍 Address:</strong> ${data.display_name}`;
+            addressElement.style.color = '#333';
+          }
+          
+          // Also send address to server
+          if (data.display_name) {
+            updateLocationWithAddress(lat, lng, data.display_name);
+          }
+        })
+        .catch(err => {
+          console.error('❌ Error getting address:', err);
+          const addressElement = document.getElementById('addressText');
+          if (addressElement) {
+            addressElement.textContent = 'Address lookup failed';
+          }
+        });
+    }
+    
+    // Send location to server
+    function sendLocationToServer(lat, lng, address = null) {
+      console.log('📤 Sending GPS to server:', lat, lng, address);
+      
+      const payload = {
+        device_id: 'web_browser',
+        latitude: lat,
+        longitude: lng,
+        user_id: <%= user.id %>
+      };
+      
+      if (address) {
+        payload.address = address;
+      }
+      
+      fetch('/api/gps-data', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      })
+        .then(res => res.json())
+        .then(data => {
+          console.log('✅ GPS data sent successfully:', data);
+        })
+        .catch(err => {
+          console.error('❌ Error sending GPS data:', err);
+        });
+    }
+    
+    // Update location with address
+    function updateLocationWithAddress(lat, lng, address) {
+      sendLocationToServer(lat, lng, address);
+    }
+    
+    // Open Google Maps with current location
+    function openGoogleMapsFromCurrent() {
+      if (currentLatitude && currentLongitude) {
+        openGoogleMaps(currentLatitude, currentLongitude);
+      } else {
+        alert('Getting your location first...');
+        getCurrentLocation();
+      }
     }
     
     // Resolve alert
@@ -748,7 +1399,8 @@
       })
         .then(res => res.json())
         .then(() => {
-          location.reload();
+          // Refresh dashboard instead of full page reload
+          updateDashboard();
         })
         .catch(err => console.error('Error resolving alert:', err));
     }
@@ -758,15 +1410,215 @@
       window.open(`https://www.google.com/maps?q=${lat},${lng}`, '_blank');
     }
     
+    // Start continuous GPS tracking for better accuracy
+    function startContinuousTracking() {
+      if (!navigator.geolocation) return;
+      
+      // Stop previous tracking if exists
+      if (watchId !== null) {
+        navigator.geolocation.clearWatch(watchId);
+      }
+      
+      console.log('🔄 Starting continuous GPS tracking for improved accuracy...');
+      
+      watchId = navigator.geolocation.watchPosition(
+        (position) => {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+          const accuracy = position.coords.accuracy;
+          const altitude = position.coords.altitude;
+          const speed = position.coords.speed;
+          
+          // Log all available GPS data
+          console.log('📡 GPS Update:');
+          console.log('   Lat/Lng:', lat.toFixed(6), ',', lng.toFixed(6));
+          console.log('   Accuracy:', Math.round(accuracy), 'meters');
+          if (altitude !== null) console.log('   Altitude:', altitude.toFixed(1), 'meters');
+          if (speed !== null) console.log('   Speed:', speed.toFixed(1), 'm/s');
+          
+          // Only update if accuracy is better than 100 meters
+          // This filters out low-quality IP-based locations
+          if (accuracy <= 100) {
+            // If this is more accurate than previous, update
+            if (accuracy < bestAccuracy) {
+              bestAccuracy = accuracy;
+              currentLatitude = lat;
+              currentLongitude = lng;
+              
+              console.log('✨ Better accuracy achieved! Updating location...');
+              updateGPSDisplay(lat, lng, accuracy);
+              sendLocationToServer(lat, lng);
+            }
+          } else {
+            console.log('⚠️ Low accuracy (' + Math.round(accuracy) + 'm) - waiting for better signal...');
+          }
+        },
+        (error) => {
+          console.error('❌ GPS tracking error:', error.message);
+        },
+        {
+          enableHighAccuracy: true,    // Use GPS hardware
+          timeout: 30000,               // 30 second timeout
+          maximumAge: 0                 // Always get fresh position
+        }
+      );
+    }
+    
+    // Stop continuous tracking
+    function stopContinuousTracking() {
+      if (watchId !== null) {
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+        console.log('🛑 Stopped continuous GPS tracking');
+      }
+    }
+    
+    // Emergency Contacts Management
+    async function loadEmergencyContacts() {
+      try {
+        const response = await fetch('/api/emergency-contacts');
+        const data = await response.json();
+        
+        const contactsList = document.getElementById('contactsList');
+        
+        if (!data.contacts || data.contacts.length === 0) {
+          contactsList.innerHTML = `
+            <div class="contact-item" style="padding: 1rem; text-align: center; color: #999; background: #f8f9fa; border-radius: 5px;">
+              <i class="fas fa-user-friends" style="font-size: 2rem; margin-bottom: 0.5rem;"></i>
+              <p>No emergency contacts added yet</p>
+              <p style="font-size: 0.85rem;">Add contacts below to receive SMS alerts</p>
+            </div>
+          `;
+          return;
+        }
+        
+        contactsList.innerHTML = data.contacts.map(contact => `
+          <div class="contact-item" style="padding: 0.8rem; background: #f8f9fa; border-radius: 5px; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
+            <div style="flex: 1;">
+              <div style="font-weight: 600; color: #333; margin-bottom: 0.2rem;">
+                <i class="fas fa-user"></i> ${contact.name}
+              </div>
+              <div style="font-size: 0.85rem; color: #666;">
+                <i class="fas fa-phone"></i> ${contact.phone_number}
+              </div>
+              <div style="font-size: 0.8rem; color: #888; margin-top: 0.2rem;">
+                <i class="fas fa-tag"></i> ${contact.relationship}
+              </div>
+            </div>
+            <button 
+              onclick="deleteContact(${contact.id})" 
+              style="padding: 0.5rem 1rem; background: #dc3545; color: white; border: none; border-radius: 5px; cursor: pointer; transition: all 0.3s;">
+              <i class="fas fa-trash-alt"></i>
+            </button>
+          </div>
+        `).join('');
+        
+      } catch (error) {
+        console.error('Error loading contacts:', error);
+        document.getElementById('contactsList').innerHTML = `
+          <div class="contact-item" style="padding: 1rem; text-align: center; color: #dc3545; background: #fff3cd; border-radius: 5px;">
+            <i class="fas fa-exclamation-triangle"></i> Failed to load contacts
+          </div>
+        `;
+      }
+    }
+    
+    // Add new emergency contact
+    document.getElementById('addContactForm')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const name = document.getElementById('contactName').value.trim();
+      const phone = document.getElementById('contactPhone').value.trim();
+      const relationship = document.getElementById('contactRelationship').value;
+      
+      if (!name || !phone || !relationship) {
+        alert('Please fill all fields');
+        return;
+      }
+      
+      try {
+        const response = await fetch('/api/emergency-contacts', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            name: name,
+            phone_number: phone,
+            relationship: relationship
+          })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          // Clear form
+          document.getElementById('contactName').value = '';
+          document.getElementById('contactPhone').value = '';
+          document.getElementById('contactRelationship').value = '';
+          
+          // Reload contacts list
+          loadEmergencyContacts();
+          
+          alert('✅ Contact added successfully!');
+        } else {
+          alert('❌ Failed to add contact: ' + (data.error || 'Unknown error'));
+        }
+      } catch (error) {
+        console.error('Error adding contact:', error);
+        alert('❌ Error adding contact. Please try again.');
+      }
+    });
+    
+    // Delete emergency contact
+    async function deleteContact(contactId) {
+      if (!confirm('Are you sure you want to delete this contact?')) {
+        return;
+      }
+      
+      try {
+        const response = await fetch(`/api/emergency-contacts/${contactId}`, {
+          method: 'DELETE'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          loadEmergencyContacts();
+          alert('✅ Contact deleted successfully!');
+        } else {
+          alert('❌ Failed to delete contact');
+        }
+      } catch (error) {
+        console.error('Error deleting contact:', error);
+        alert('❌ Error deleting contact. Please try again.');
+      }
+    }
+    
     // Initialize on page load
     document.addEventListener('DOMContentLoaded', () => {
+      console.log('✅ Dashboard loaded, starting real-time updates...');
+      
+      // Load emergency contacts
+      loadEmergencyContacts();
+      
+      // Get initial GPS location
+      getCurrentLocation();
+      
+      // Start continuous GPS tracking for better accuracy
+      startContinuousTracking();
+      
+      // Load initial chart data
       loadHistoricalData();
       
-      // Update every 5 seconds
-      setInterval(updateDashboard, 5000);
+      // Call immediately on load
+      updateDashboard();
       
-      // Reload chart every minute
-      setInterval(loadHistoricalData, 60000);
+      // Update dashboard data every 3 seconds for real-time monitoring
+      setInterval(updateDashboard, 3000);
+      
+      // Reload chart every 10 seconds to show latest data
+      setInterval(loadHistoricalData, 10000);
     });
   </script>
 </body>
